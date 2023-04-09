@@ -8,13 +8,14 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "enter program name, for example ${workspaceFolder}/mm",
+            "program": "enter program name, for example ${workspaceFolder}/a.out",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
+            "miDebuggerArgs": "-f short1-bal.rep",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",

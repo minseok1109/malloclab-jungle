@@ -8,7 +8,12 @@
                 "-fdiagnostics-color=always",
                 "-g",
                 "${file}",
-                "${fileDirname}/*.o",
+                "${fileDirname}/mdriver.o",
+                "${fileDirname}/memlib.o",
+                "${fileDirname}/fsecs.o",
+                "${fileDirname}/fcyc.o",
+                "${fileDirname}/clock.o",
+                "${fileDirname}/ftimer.o",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}"
             ],
