@@ -24,9 +24,9 @@
  ********************************************************/
 team_t team = {
     /* Team name */
-    "ateam",
+    "team 6",
     /* First member's full name */
-    "Harry Bovik",
+    "Bang min seok",
     /* First member's email address */
     "bovik@cs.cmu.edu",
     /* Second member's full name (leave blank if none) */
@@ -66,7 +66,8 @@ team_t team = {
 #define NEXT_BLKP(bp) ((char *)(bp) + GET_SIZE(((char *)(bp)-WSIZE)))
 #define PREV_BLKP(bp) ((char *)(bp)-GET_SIZE(((char *)(bp)-DSIZE)))
 
-static char *heap_listp; // 처음에 쓸 큰 가용블록 힙을 만들어줌.
+static char *heap_listp = 0;
+static char *start_nextfit = 0;
 
 static void *coalesce(void *bp)
 {
@@ -75,7 +76,8 @@ static void *coalesce(void *bp)
     size_t size = GET_SIZE(HDRP(bp));                   // 지금 블록의 사이즈 확인
 
     if (prev_alloc && next_alloc)
-    {              // case 1 - 이전과 다음 블록이 모두 할당 되어있는 경우, 현재 블록의 상태는 할당에서 가용으로 변경
+    { // case 1 - 이전과 다음 블록이 모두 할당 되어있는 경우, 현재 블록의 상태는 할당에서 가용으로 변경
+        start_nextfit = bp;
         return bp; // 이미 free에서 가용이 되어있으니 여기선 따로 free 할 필요 없음.
     }
     else if (prev_alloc && !next_alloc)
@@ -98,6 +100,7 @@ static void *coalesce(void *bp)
         PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));                               // 푸터를 뒤로 가서 사이즈 넣는다.
         bp = PREV_BLKP(bp);                                                    // 헤더는 그 전 블록으로 이동.
     }
+    start_nextfit = bp;
     return bp; // 4개 케이스중에 적용된거로 bp 리턴
 }
 
@@ -140,6 +143,7 @@ int mm_init(void)
     PUT(heap_listp + (2 * WSIZE), PACK(DSIZE, 1)); // prologue footer생성.
     PUT(heap_listp + (3 * WSIZE), PACK(0, 1));     // epilogue block header를 처음에 만든다. 그리고 뒤로 밀리는 형태.
     heap_listp += (2 * WSIZE);                     // prologue header와 footer 사이로 포인터로 옮긴다. header 뒤 위치. 다른 블록 가거나 그러려고.
+    start_nextfit = heap_listp;
 
     if (extend_heap(CHUNKSIZE / WSIZE) == NULL) // extend heap을 통해 시작할 때 한번 heap을 늘려줌. 늘리는 양은 상관없음.
         return -1;
@@ -154,15 +158,18 @@ int mm_init(void)
  */
 
 static void *find_fit(size_t asize)
-{
-    void *bp = heap_listp;
-    while (GET_SIZE(HDRP(bp)) > 0) // epilogue header까지 탐색
+{ // next fit 검색을 수행
+    void *bp;
+
+    for (bp = start_nextfit; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp))
     {
         if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp))))
-        {
             return bp;
-        }
-        bp = NEXT_BLKP((bp));
+    }
+    for (bp = heap_listp; bp != start_nextfit; bp = NEXT_BLKP(bp)) // 위에서 못찾은 걸 처음으로 돌아가서 다시 탐색 -> next_fit방식
+    {
+        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp))))
+            return bp;
     }
     return NULL;
 }
@@ -256,9 +263,13 @@ mm_realloc(void *ptr, size_t size)
     newptr = mm_malloc(size);
     if (newptr == NULL)
         return NULL;
-    copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
+    copySize = GET_SIZE(HDRP(oldptr));
     if (size < copySize)
         copySize = size;
+    /*memcpy(new, old, size)
+    new -> 복사받을 메모리를 가리키는 포인터
+    old -> 복사할 메모리를 가지고 있는 포인터
+    size -> 복사할 데이터의 길이*/
     memcpy(newptr, oldptr, copySize);
     mm_free(oldptr);
     return newptr;
