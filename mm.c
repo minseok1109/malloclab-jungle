@@ -193,7 +193,7 @@ static void *coalesce(void *bp)
     put_free_block(bp, size);
     return bp;
 }
-
+// 어디를 할당할 지 찾는게 아니라 어느 seglist에 해당하는 지 찾는다.
 static void *find_fit(size_t asize)
 {
     void *bp;
