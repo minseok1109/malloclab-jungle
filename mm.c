@@ -88,6 +88,11 @@ int mm_init(void)
     PUT(heap_listp + (3 * WSIZE), PACK(0, 1));
     heap_listp = heap_listp + 2 * WSIZE;
 
+    if (extend_heap(4) == NULL)
+    {
+        return -1;
+    }
+
     if (extend_heap(CHUNKSIZE / WSIZE) == NULL)
     {
         return -1;
@@ -162,26 +167,26 @@ static void *coalesce(void *bp)
     else if (prev_alloc && !next_alloc)
     {
         size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
+        remove_block(NEXT_BLKP(bp));
         PUT(HDRP(bp), PACK(size, 0));
         PUT(FTRP(bp), PACK(size, 0));
-        remove_block(NEXT_BLKP(bp));
     }
     else if (!prev_alloc && next_alloc)
     {
         size += GET_SIZE(HDRP(PREV_BLKP(bp)));
+        remove_block(PREV_BLKP(bp));
         PUT(FTRP(bp), PACK(size, 0));
         PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
-        remove_block(PREV_BLKP(bp));
         bp = PREV_BLKP(bp);
     }
     else
     {
         size += GET_SIZE(HDRP(PREV_BLKP(bp))) +
                 GET_SIZE(FTRP(NEXT_BLKP(bp)));
-        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
-        PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));
         remove_block(PREV_BLKP(bp));
         remove_block(NEXT_BLKP(bp));
+        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
+        PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));
         bp = PREV_BLKP(bp);
     }
 
